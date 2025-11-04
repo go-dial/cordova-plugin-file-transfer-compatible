@@ -1,6 +1,6 @@
 ---
-title: File Transfer
-description: Upload and download files.
+title: File Transfer Compatible
+description: Google Play Policy Compliant File Transfer with SAF support
 ---
 <!--
 # license: Licensed to the Apache Software Foundation (ASF) under one
@@ -21,7 +21,70 @@ description: Upload and download files.
 #         under the License.
 -->
 
-# cordova-plugin-file-transfer
+# cordova-plugin-file-transfer-compatible
+
+**🚀 Google Play Policy Compliant** | **🔒 SAF Compatible** | **📁 Modern File Transfer**
+
+This plugin is a Google Play policy-compliant replacement for `cordova-plugin-file-transfer`. It maintains full backward compatibility while adding support for **Storage Access Framework (SAF)** URIs, enabling secure file uploads without requiring sensitive storage permissions.
+
+## Key Features
+
+- ✅ **Google Play Compliant**: Works with SAF URIs from `cordova-plugin-file-compatible`
+- 🔄 **Backward Compatible**: Drop-in replacement for `cordova-plugin-file-transfer`
+- 📱 **SAF Support**: Upload files selected through Storage Access Framework
+- 🛡️ **No Permission Changes**: Same permissions as original plugin
+- 🔗 **Seamless Integration**: Automatically detects SAF URIs vs traditional paths
+
+## Installation
+
+```bash
+# Remove old file-transfer plugin first (if installed)
+cordova plugin remove cordova-plugin-file-transfer
+
+# Install the compatible version
+cordova plugin add cordova-plugin-file-transfer-compatible
+```
+
+## Dependencies
+
+This plugin automatically installs and depends on:
+- `cordova-plugin-file-compatible` (for SAF support and file operations)
+
+## SAF URI Upload Example
+
+```javascript
+// First, let user pick a file using SAF
+SafManager.pickImages(false, function(safUri) {
+    console.log("User selected:", safUri);
+    
+    // Upload the SAF URI directly - plugin handles conversion automatically
+    var ft = new FileTransfer();
+    var uploadURL = "https://your-server.com/upload";
+    
+    var options = {
+        fileKey: "file"
+        // fileName and mimeType will be automatically detected from SAF URI
+    };
+    
+    ft.upload(safUri, uploadURL, function(result) {
+        console.log("SAF upload successful:", result);
+    }, function(error) {
+        console.error("SAF upload failed:", error);
+    }, options);
+}, function(error) {
+    console.log("User cancelled file selection");
+});
+```
+
+## How It Works
+
+The plugin automatically detects whether the provided file path is a traditional path or SAF URI:
+- **Traditional paths**: Work exactly as before
+- **SAF URIs** (`content://...`): Automatically copied to temp storage, uploaded, then cleaned up
+
+## Migration
+
+**No code changes needed** for existing functionality. The plugin is a drop-in replacement that adds SAF support while maintaining full backward compatibility.
 
 [![Android Testsuite](https://github.com/apache/cordova-plugin-file-transfer/actions/workflows/android.yml/badge.svg)](https://github.com/apache/cordova-plugin-file-transfer/actions/workflows/android.yml) [![Chrome Testsuite](https://github.com/apache/cordova-plugin-file-transfer/actions/workflows/chrome.yml/badge.svg)](https://github.com/apache/cordova-plugin-file-transfer/actions/workflows/chrome.yml) [![iOS Testsuite](https://github.com/apache/cordova-plugin-file-transfer/actions/workflows/ios.yml/badge.svg)](https://github.com/apache/cordova-plugin-file-transfer/actions/workflows/ios.yml) [![Lint Test](https://github.com/apache/cordova-plugin-file-transfer/actions/workflows/lint.yml/badge.svg)](https://github.com/apache/cordova-plugin-file-transfer/actions/workflows/lint.yml)
 

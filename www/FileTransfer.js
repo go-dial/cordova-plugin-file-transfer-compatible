@@ -24,7 +24,7 @@
 const argscheck = require('cordova/argscheck');
 const exec = require('cordova/exec');
 const FileTransferError = require('./FileTransferError');
-const ProgressEvent = require('cordova-plugin-file.ProgressEvent');
+const ProgressEvent = require('cordova-plugin-file-compatible.ProgressEvent');
 
 function newProgressEvent (result) {
     const pe = new ProgressEvent();
@@ -78,7 +78,7 @@ const FileTransfer = function () {
 /**
  * Given an absolute file path, uploads a file on the device to a remote server
  * using a multipart HTTP request.
- * @param filePath {String}           Full path of the file on the device
+ * @param filePath {String}           Full path of the file on the device or SAF content:// URI
  * @param server {String}             URL of the server to receive the file
  * @param successCallback (Function}  Callback to be invoked when upload has completed
  * @param errorCallback {Function}    Callback to be invoked upon error
@@ -86,6 +86,78 @@ const FileTransfer = function () {
  * @param trustAllHosts {Boolean} Optional trust all hosts (e.g. for self-signed certs), defaults to false
  */
 FileTransfer.prototype.upload = function (filePath, server, successCallback, errorCallback, options, trustAllHosts) {
+    argscheck.checkArgs('ssFFO*', 'FileTransfer.upload', arguments);
+    
+    // Handle SAF URIs by checking if SafManager is available and if this is a content:// URI
+    if (window.SafManager && filePath && filePath.startsWith('content://')) {
+        this._uploadFromSaf(filePath, server, successCallback, errorCallback, options, trustAllHosts);
+        return;
+    }
+    
+    // Continue with traditional file path upload
+    this._uploadTraditional(filePath, server, successCallback, errorCallback, options, trustAllHosts);
+};
+
+/**
+ * Upload from SAF URI - converts SAF URI to local file then uploads
+ * @private
+ */
+FileTransfer.prototype._uploadFromSaf = function (safUri, server, successCallback, errorCallback, options, trustAllHosts) {
+    const self = this;
+    
+    // First, get file info from SAF URI
+    window.SafManager.getFileInfo(safUri, function(fileInfo) {
+        // Create a temporary local file path
+        const tempFileName = fileInfo.name || 'upload_' + Date.now();
+        const tempPath = cordova.file.cacheDirectory + tempFileName;
+        
+        // Copy from SAF to local storage
+        window.SafManager.copyFromSaf(safUri, tempPath, function(success) {
+            if (success) {
+                // Update options with original file name if not provided
+                if (!options) options = {};
+                if (!options.fileName) options.fileName = fileInfo.name;
+                if (!options.mimeType) options.mimeType = fileInfo.mimeType;
+                
+                // Now upload the local file
+                self._uploadTraditional(tempPath, server, function(result) {
+                    // Clean up temporary file after successful upload
+                    window.resolveLocalFileSystemURL(tempPath, function(fileEntry) {
+                        fileEntry.remove(function() {
+                            console.log('Temporary file cleaned up');
+                        }, function(error) {
+                            console.warn('Failed to clean up temporary file:', error);
+                        });
+                    });
+                    
+                    if (successCallback) successCallback(result);
+                }, function(error) {
+                    // Clean up temporary file after failed upload
+                    window.resolveLocalFileSystemURL(tempPath, function(fileEntry) {
+                        fileEntry.remove();
+                    });
+                    
+                    if (errorCallback) errorCallback(error);
+                }, options, trustAllHosts);
+            } else {
+                const error = new FileTransferError(FileTransferError.FILE_NOT_FOUND_ERR, safUri, server, 0, 'Failed to copy SAF file to local storage');
+                if (errorCallback) errorCallback(error);
+            }
+        }, function(error) {
+            const transferError = new FileTransferError(FileTransferError.FILE_NOT_FOUND_ERR, safUri, server, 0, 'Failed to copy SAF file: ' + error);
+            if (errorCallback) errorCallback(transferError);
+        });
+    }, function(error) {
+        const transferError = new FileTransferError(FileTransferError.FILE_NOT_FOUND_ERR, safUri, server, 0, 'Failed to get SAF file info: ' + error);
+        if (errorCallback) errorCallback(transferError);
+    });
+};
+
+/**
+ * Traditional file upload implementation
+ * @private
+ */
+FileTransfer.prototype._uploadTraditional = function (filePath, server, successCallback, errorCallback, options, trustAllHosts) {
     argscheck.checkArgs('ssFFO*', 'FileTransfer.upload', arguments);
     // check for options
     let fileKey = null;
@@ -194,9 +266,9 @@ FileTransfer.prototype.download = function (source, target, successCallback, err
         } else if (successCallback) {
             let entry = null;
             if (result.isDirectory) {
-                entry = new (require('cordova-plugin-file.DirectoryEntry'))();
+                entry = new (require('cordova-plugin-file-compatible.DirectoryEntry'))();
             } else if (result.isFile) {
-                entry = new (require('cordova-plugin-file.FileEntry'))();
+                entry = new (require('cordova-plugin-file-compatible.FileEntry'))();
             }
             entry.isDirectory = result.isDirectory;
             entry.isFile = result.isFile;
