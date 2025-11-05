@@ -1,6 +1,7 @@
 # Troubleshooting: FileUtils Import Error
 
 ## Problem
+
 Still getting FileUtils import errors even after adding dependency declaration to plugin.xml:
 
 ```
@@ -11,8 +12,9 @@ import org.apache.cordova.file.FileUtils;
 ## Root Cause Analysis
 
 The error occurs because:
+
 1. **FileTransfer.java** (line 836) expects to find a FileUtils plugin via `pm.getPlugin("File")`
-2. **FileTransfer.java** (line 49) imports `org.apache.cordova.file.FileUtils` 
+2. **FileTransfer.java** (line 49) imports `org.apache.cordova.file.FileUtils`
 3. The **cordova-plugin-file-compatible** provides this class and registers as "File"
 4. However, the file-compatible plugin is not properly installed in your main Cordova app
 
@@ -21,11 +23,13 @@ The error occurs because:
 The key issue is that both plugins need to be installed in your **main Cordova application**, not just in this plugin workspace. The dependency declaration in plugin.xml helps, but for local development you need to manually install both plugins.
 
 ### Step 1: Go to Your Main Cordova App Directory
+
 ```bash
 cd /Users/avifainfotech/Desktop/Github/godial/godial-app-enterprise-v2/cordova
 ```
 
 ### Step 2: Remove and Reinstall Plugins in Correct Order
+
 ```bash
 # Remove both plugins if already installed
 cordova plugin remove cordova-plugin-file-transfer-compatible
@@ -39,15 +43,18 @@ cordova plugin add /Users/avifainfotech/Desktop/Github/godial/cordova-plugin-fil
 ```
 
 ### Step 3: Verify Plugin Installation
+
 ```bash
 cordova plugin list
 ```
 
 You should see both:
+
 - cordova-plugin-file-compatible
 - cordova-plugin-file-transfer-compatible
 
 ### Step 4: Clean and Rebuild
+
 ```bash
 # Clean the platform
 cordova clean android
