@@ -21,10 +21,10 @@ The FileTransfer.java file was trying to import `org.apache.cordova.file.FileUti
 Added a dependency declaration in plugin.xml:
 
 ```xml
-<dependency id="cordova-plugin-file-compatible" />
+<dependency id="cordova-plugin-file-compatible" url="https://github.com/go-dial/cordova-plugin-file-compatible.git" />
 ```
 
-This tells Cordova that this plugin depends on the cordova-plugin-file-compatible plugin, which provides the FileUtils class that FileTransfer needs.
+This tells Cordova that this plugin depends on the cordova-plugin-file-compatible plugin, which provides the FileUtils class that FileTransfer needs. The URL is specified to ensure Cordova knows where to find this custom plugin.
 
 ## Files Modified
 
